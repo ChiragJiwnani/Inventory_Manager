@@ -1,7 +1,7 @@
 // InventoryForm.jsx
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import axios from "axios";
+import api from "../services/api";
 import * as XLSX from 'xlsx';
 
 export default function InventoryForm({ edit = false, passOn = false }) {
@@ -27,7 +27,7 @@ export default function InventoryForm({ edit = false, passOn = false }) {
 
     useEffect(() => {
         if (edit || passOn) {
-            axios.get("http://localhost:5000/api/inventory")
+            api.get("http://localhost:5000/api/inventory")
                 .then(res => {
                     const item = res.data.find(i => i._id === id);
                     if (item) {
@@ -57,14 +57,14 @@ export default function InventoryForm({ edit = false, passOn = false }) {
         e.preventDefault();
 
         if (edit) {
-            axios.put(`http://localhost:5000/api/inventory/${id}`, form)
+            api.put(`http://localhost:5000/api/inventory/${id}`, form)
                 .then(() => navigate("/"));
         } else if (passOn) {
-            axios.post(`http://localhost:5000/api/inventory/passon/${id}`, {
+            api.post(`http://localhost:5000/api/inventory/passon/${id}`, {
                 newUser: form.user, newEmployeeCode: form.employeeCode
             }).then(() => navigate("/"));
         } else {
-            axios.post("http://localhost:5000/api/inventory", {
+            api.post("http://localhost:5000/api/inventory", {
                 ...form,
                 currentHolder: form.user
             }).then(() => navigate("/"));
@@ -85,7 +85,7 @@ export default function InventoryForm({ edit = false, passOn = false }) {
             console.log("Parsed Excel JSON:", json); // 🔍 Check this in browser dev tools
 
             try {
-                axios.post(`http://localhost:5000/api/inventory/bulk`, json);
+                api.post(`http://localhost:5000/api/inventory/bulk`, json);
                 alert("Bulk upload successful");
                 window.location.reload();
             } catch (error) {
@@ -101,11 +101,11 @@ export default function InventoryForm({ edit = false, passOn = false }) {
     const confirmImport = async () => {
         try {
             // Send data to the backend
-            await axios.post("http://localhost:5000/api/inventory/bulk", bulkData);
+            await api.post("http://localhost:5000/api/inventory/bulk", bulkData);
             alert("Inventory imported successfully!");
 
             // Refresh inventory list
-            const res = await axios.get("http://localhost:5000/api/inventory");
+            const res = await api.get("http://localhost:5000/api/inventory");
             setItems(res.data);
 
             setShowPreview(false);
@@ -129,46 +129,51 @@ export default function InventoryForm({ edit = false, passOn = false }) {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4 transition-all duration-300 bg-sky-200 p-6 rounded shadow-md">
-                <div className="my-4 flex bg-sky-50 py-3 px-4 rounded shadow-md space-x-4 items-center w-fit">
-                    <label className="text font-medium">Upload Inventory Excel</label>
-                    <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} className="file-input file-input-bordered py-2 px-3 rounded w-fit bg-sky-500 text-white" />
-                </div>
-<hr className="text-sky-800"/>
-                {showPreview && (
-                    <div className="bg-white p-4 rounded shadow mt-4">
-                        <h2 className="text-lg font-semibold mb-2">Preview Bulk Import</h2>
-                        <div className="overflow-auto max-h-64">
-                            <table className="table-auto w-full text-sm text-left border">
-                                <thead>
-                                    <tr>
-                                        {Object.keys(bulkData[0] || {}).map((key, idx) => (
-                                            <th key={idx} className="border px-2 py-1 bg-gray-100">{key}</th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {bulkData.map((item, idx) => (
-                                        <tr key={idx}>
-                                            {Object.values(item).map((val, i) => (
-                                                <td key={i} className="border px-2 py-1">{val}</td>
-                                            ))}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                        <div className="flex gap-2 mt-3">
-                            <button onClick={confirmImport} className="btn btn-sm bg-green-500 text-white">Confirm Import</button>
-                            <button onClick={() => setShowPreview(false)} className="btn btn-sm bg-red-500 text-white">Cancel</button>
-                        </div>
-                    </div>
-                )}
+
                 <h2 className="text-2xl font-bold mb-6">
                     {edit ? "Edit Inventory" : passOn ? "Pass On Inventory" : "➕ Add Inventory"}
                 </h2>
-                <p className="border-b border-sky-50 py-1">Item Description</p>
+                {!passOn && !edit && (
+                    <>
+                        <div className="my-4 flex bg-sky-50 py-3 px-4 rounded shadow-md space-x-4 items-center w-fit">
+                            <label className="text font-medium">Upload Inventory Excel</label>
+                            <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} className="file-input file-input-bordered py-2 px-3 rounded w-fit bg-sky-500 text-white" />
+                        </div>
+                        <hr className="text-sky-800" />
+                        {showPreview && (
+                            <div className="bg-white p-4 rounded shadow mt-4">
+                                <h2 className="text-lg font-semibold mb-2">Preview Bulk Import</h2>
+                                <div className="overflow-auto max-h-64">
+                                    <table className="table-auto w-full text-sm text-left border">
+                                        <thead>
+                                            <tr>
+                                                {Object.keys(bulkData[0] || {}).map((key, idx) => (
+                                                    <th key={idx} className="border px-2 py-1 bg-gray-100">{key}</th>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {bulkData.map((item, idx) => (
+                                                <tr key={idx}>
+                                                    {Object.values(item).map((val, i) => (
+                                                        <td key={i} className="border px-2 py-1">{val}</td>
+                                                    ))}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div className="flex gap-2 mt-3">
+                                    <button onClick={confirmImport} className="btn btn-sm bg-green-500 text-white">Confirm Import</button>
+                                    <button onClick={() => setShowPreview(false)} className="btn btn-sm bg-red-500 text-white">Cancel</button>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )}
+                <p className="border-b border-sky-50 py-1">User Description</p>
                 <div>
-                    <label className="block mb-1 font-medium">User Name</label>
+                    <label className="block mb-1 font-medium">User Name<span className="text-red-500">*</span></label>
                     <input
                         name="user"
                         value={form.user}
@@ -179,7 +184,7 @@ export default function InventoryForm({ edit = false, passOn = false }) {
                 </div>
 
                 <div>
-                    <label className="block mb-1 font-medium">Employee Code</label>
+                    <label className="block mb-1 font-medium">Employee Code<span className="text-red-500">*</span></label>
                     <input
                         name="employeeCode"
                         value={form.employeeCode}
@@ -213,7 +218,7 @@ export default function InventoryForm({ edit = false, passOn = false }) {
                         <p className="border-b border-sky-50 py-1">Item Description</p>
                         <div className="div_category flex space-x-4 items-center grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block mb-1 font-medium">Asset Code</label>
+                                <label className="block mb-1 font-medium">Asset Code<span className="text-red-500">*</span></label>
                                 <input
                                     name="assetCode"
                                     value={form.assetCode}
@@ -223,7 +228,7 @@ export default function InventoryForm({ edit = false, passOn = false }) {
                                 />
                             </div>
                             <div>
-                                <label className=" block mb-1 font-medium">Category</label>
+                                <label className=" block mb-1 font-medium">Category<span className="text-red-500">*</span></label>
                                 <select
                                     name="category"
                                     value={form.category}
@@ -240,12 +245,13 @@ export default function InventoryForm({ edit = false, passOn = false }) {
                             </div>
 
                             <div>
-                                <label className="block mb-1 font-medium">Item Brand</label>
+                                <label className="block mb-1 font-medium">Item Brand<span className="text-red-500">*</span></label>
                                 <input
                                     name="itemBrand"
                                     value={form.itemBrand}
                                     onChange={handleChange}
                                     className="w-full bg-sky-50 rounded px-3 py-2 shadow-sm"
+                                    required
                                 />
                             </div>
 
@@ -260,7 +266,7 @@ export default function InventoryForm({ edit = false, passOn = false }) {
                             </div>
 
                             <div>
-                                <label className="block mb-1 font-medium">Model No.</label>
+                                <label className="block mb-1 font-medium">Model No.<span className="text-red-500">*</span></label>
                                 <input
                                     name="modelNo"
                                     value={form.modelNo}
@@ -271,7 +277,7 @@ export default function InventoryForm({ edit = false, passOn = false }) {
                             </div>
 
                             <div>
-                                <label className="block mb-1 font-medium">Serial No.</label>
+                                <label className="block mb-1 font-medium">Serial No.<span className="text-red-500">*</span></label>
                                 <input
                                     name="serialNo"
                                     value={form.serialNo}
@@ -289,18 +295,20 @@ export default function InventoryForm({ edit = false, passOn = false }) {
                                     value={form.purchaseDate}
                                     onChange={handleChange}
                                     className="w-fit bg-sky-50 rounded px-3 py-2 shadow-sm"
-                                    required
+
                                 />
                             </div>
                         </div>
                     </>
                 )}
+                
+
 
                 <button
                     type="submit"
                     className="bg-green-600 text-white drop-shadow-md px-4 py-2 rounded hover:bg-green-700"
                 >
-                    {edit ? "Update" : passOn ? "Transfer" : "Add"}
+                    {edit ? "Update" : passOn ? "-> Transfer" : "+ Add"}
                 </button>
             </form>
         </div>
